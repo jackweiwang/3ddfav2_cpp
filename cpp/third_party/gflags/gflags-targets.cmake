@@ -4,7 +4,7 @@ if("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" LESS 2.5)
    message(FATAL_ERROR "CMake >= 2.6.0 required")
 endif()
 cmake_policy(PUSH)
-cmake_policy(VERSION 2.6...3.18)
+cmake_policy(VERSION 2.6...3.17)
 #----------------------------------------------------------------
 # Generated CMake target import file.
 #----------------------------------------------------------------
@@ -16,7 +16,7 @@ set(CMAKE_IMPORT_FILE_VERSION 1)
 set(_targetsDefined)
 set(_targetsNotDefined)
 set(_expectedTargets)
-foreach(_expectedTarget gflags_nothreads_static)
+foreach(_expectedTarget gflags::gflags_nothreads_static)
   list(APPEND _expectedTargets ${_expectedTarget})
   if(NOT TARGET ${_expectedTarget})
     list(APPEND _targetsNotDefined ${_expectedTarget})
@@ -41,20 +41,20 @@ unset(_targetsNotDefined)
 unset(_expectedTargets)
 
 
-# Create imported target gflags_nothreads_static
-add_library(gflags_nothreads_static STATIC IMPORTED)
+# Create imported target gflags::gflags_nothreads_static
+add_library(gflags::gflags_nothreads_static STATIC IMPORTED)
 
-set_target_properties(gflags_nothreads_static PROPERTIES
+set_target_properties(gflags::gflags_nothreads_static PROPERTIES
   INTERFACE_COMPILE_DEFINITIONS "GFLAGS_IS_A_DLL=0"
-  INTERFACE_INCLUDE_DIRECTORIES "/Users/wangshenpeng/Downloads/TNN/third_party/gflags/include"
-  INTERFACE_LINK_LIBRARIES "TNN"
+  INTERFACE_INCLUDE_DIRECTORIES "/home/ww/google/3ddfav2_cpp/cpp/third_party/gflags/include"
+  INTERFACE_LINK_LIBRARIES "-Wl,--whole-archive;-Wl,--no-whole-archive"
 )
 
-# Import target "gflags_nothreads_static" for configuration "Release"
-set_property(TARGET gflags_nothreads_static APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
-set_target_properties(gflags_nothreads_static PROPERTIES
-  IMPORTED_LINK_INTERFACE_LANGUAGES_RELEASE "CXX"
-  IMPORTED_LOCATION_RELEASE "/Users/wangshenpeng/Downloads/TNN/third_party/gflags/libgflags_nothreads.a"
+# Import target "gflags::gflags_nothreads_static" for configuration ""
+set_property(TARGET gflags::gflags_nothreads_static APPEND PROPERTY IMPORTED_CONFIGURATIONS NOCONFIG)
+set_target_properties(gflags::gflags_nothreads_static PROPERTIES
+  IMPORTED_LINK_INTERFACE_LANGUAGES_NOCONFIG "CXX"
+  IMPORTED_LOCATION_NOCONFIG "/home/ww/google/3ddfav2_cpp/cpp/third_party/gflags/libgflags_nothreads.a"
   )
 
 # This file does not depend on other imported targets which have

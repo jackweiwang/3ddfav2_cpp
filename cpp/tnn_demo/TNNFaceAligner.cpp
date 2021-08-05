@@ -24,8 +24,13 @@
 #include "utils/macro.h"
 #include "utils/utils.h"
 
+#define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
+
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include <stb_image_resize.h>
 
 #ifdef _OPENCV_
@@ -37,7 +42,7 @@ Status initDetectPredictor(std::shared_ptr<BlazeFaceDetector>& predictor, int ar
     char detect_path_buff[256];
     char *detect_model_path = detect_path_buff;
     if (argc < 3) {
-        strncpy(detect_model_path, "../../../../model/blazeface/", 256);
+        strncpy(detect_model_path, "../../../models/facealigner/", 256);
     } else {
         strncpy(detect_model_path, argv[2], 256);
     }
@@ -60,9 +65,9 @@ Status initDetectPredictor(std::shared_ptr<BlazeFaceDetector>& predictor, int ar
         
         detect_option->compute_units = TNN_NS::TNNComputeUnitsCPU;
         // if enable openvino/tensorrt, set option compute_units to openvino/tensorrt
-        #ifdef _CUDA_
-            detect_option->compute_units = TNN_NS::TNNComputeUnitsGPU;
-        #endif
+        //#ifdef _CUDA_
+        //    detect_option->compute_units = TNN_NS::TNNComputeUnitsGPU;
+        //#endif
         
         detect_option->min_score_threshold = 0.75;
         detect_option->min_suppression_threshold = 0.3;
@@ -78,7 +83,7 @@ Status initFaceAlignPredictor(std::shared_ptr<YoutuFaceAlign>& predictor, int ar
     char align_path_buff[256];
     char *align_model_path = align_path_buff;
     if (argc < 2) {
-        strncpy(align_model_path, "../../../../model/youtu_face_alignment/", 256);
+        strncpy(align_model_path, "../../../models/facealigner/", 256);
     } else {
         strncpy(align_model_path, argv[1], 256);
     }
@@ -261,12 +266,12 @@ int main(int argc, char** argv) {
         } else {
 #endif
             char buff[256];
-            sprintf(buff, "%s.png", "predictions");
+            sprintf(buff, "%s.bmp", "predictions");
             int success = stbi_write_bmp(buff, image_width, image_height, 4, ifm_buf);
             if(!success) 
                 return -1;
             delete [] ifm_buf;
-            fprintf(stdout, "Face-detector done. The result was saved in %s.png\n", "predictions");
+            fprintf(stdout, "Face-detector done. The result was saved in %s.bmp\n", "predictions");
             free(data);
 #ifdef _OPENCV_
             break;
