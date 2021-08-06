@@ -1,5 +1,4 @@
-# 3ddfa_v2 cpp
-TNN facealiger demo  
+# TNN facealiger demo  
 
 ## set up
 
