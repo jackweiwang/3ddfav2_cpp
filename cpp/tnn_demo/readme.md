@@ -17,11 +17,12 @@ cd TNN/examples/linux/x86
 
 bash build_linux_native.sh
 ```
-Put libTNN.so to our directory
+Put libTNN.so and include to our directory
 ```bash
 cd 3ddfav2_cpp
 
 cp TNN/build/libTNN.so.0.1.0.0 cpp/third_party/TNN/libs/
+cp TNN/include cpp/third_party/TNN/ -r
 
 ln -s libTNN.so.0.1.0.0 libTNN.so.0.1
 
