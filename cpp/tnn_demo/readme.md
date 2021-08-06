@@ -24,8 +24,8 @@ cd 3ddfav2_cpp
 cp TNN/build/libTNN.so.0.1.0.0 cpp/third_party/TNN/libs/
 cp TNN/include cpp/third_party/TNN/ -r
 
+cd cpp/third_party/TNN/libs
 ln -s libTNN.so.0.1.0.0 libTNN.so.0.1
-
 ln -s libTNN.so.0.1 libTNN.so
 ```
 ### 2. convert tnn
