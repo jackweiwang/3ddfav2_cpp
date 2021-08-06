@@ -1,4 +1,4 @@
-# TNN facealiger demo  
+# TNN facealigner demo  
 
 ## set up
 
