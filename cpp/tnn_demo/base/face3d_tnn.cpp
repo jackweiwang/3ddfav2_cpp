@@ -26,17 +26,19 @@ Status Face3d::Init(std::shared_ptr<TNNSDKOption> option_i) {
     auto input_dims = GetInputShape();
     option->input_height = input_dims[2];
     option->input_width  = input_dims[3];
-
+    
     return status;
 }
 
 std::shared_ptr<Mat> Face3d::ProcessSDKInputMat(std::shared_ptr<Mat> input_mat,
                                                                    std::string name) {
+
     return TNNSDKSample::ResizeToInputShape(input_mat, name);
 }
 
 MatConvertParam Face3d::GetConvertParamForInput(std::string tag) {
     MatConvertParam input_convert_param;
+
     input_convert_param.scale = {1.0 / 127.5, 1.0 / 127.5, 1.0 / 127.5, 0.0};
     input_convert_param.bias  = {-1.0, -1.0, -1.0, 0.0};
     return input_convert_param;
@@ -57,54 +59,39 @@ Status Face3d::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_) {
     
     
     auto score = output->GetMat("output");
-    //auto boxes  = output->GetMat("544");
+
+
     RETURN_VALUE_ON_NEQ(!score, false,
                            Status(TNNERR_PARAM_ERR, "score mat is nil"));
  
-    TNN_NS::Mat scores = *(score.get());
-    std::vector<float> bbox_collection;
-
-    float *score_data = static_cast<float*>(scores.GetData());
-
-    for(int i=0; i<68; ++i) {
-
-        //float kp_x = score_data[i * 2 + 0] ;
-        //float kp_y = score_data[i * 2 + 1] ;
-        bbox_collection.push_back(score_data[i]);
-    }
+    std::vector<Face3dInfo> bbox_collection;
+    GenerateLandmarks(bbox_collection, *(score.get()), option->input_width, option->input_height);
 
     output->face_list = bbox_collection;
     
     return status;
 }
+void Face3d::GenerateLandmarks(std::vector<Face3dInfo> &detects, TNN_NS::Mat &landmarks, int image_w, int image_h ) {
+
+    float *landmark_data = static_cast<float*>(landmarks.GetData());
+
+
+    Face3dInfo info;
+    info.image_width = image_w;
+    info.image_height = image_h;
+
+    // key points
+    for(int i=0; i<num_keypoints*3; ++i) {
+        // int offset = j * 3 ;
+        // float xp = (landmark_data[offset + 0]  ) ;
+        // float yp = (landmark_data[offset + 1]  ) ;
+        // float zp = (landmark_data[offset + 2]  ) ;
+        //info.naive_key_points.push_back( std::make_tuple(xp, yp, zp) );
+        info.naive_key_points.push_back( landmark_data[i] );
+    }
+    detects.push_back(std::move(info));
+    
+    
 }
-// Face3d::Face3d(const std::string& model_path){
-//     float means[3] = {127.5, 127.5, 127.5};
-//     float std[3] = {1/127.5, 1/127.5, 1/127.5};
-//     _preprocess.reset(
-//         MNN::CV::ImageProcess::create(MNN::CV::ImageFormat::RGB,
-//         MNN::CV::BGR, \
-//         means, \
-//         3, \
-//         std, \
-//         3)
-//     );
-//     _interpreter.reset(MNN::Interpreter::createFromFile(model_path.c_str()));
-//     MNN::ScheduleConfig cfg;
-//     _session = _interpreter->createSession(cfg);
-// }
 
-// Face3d::~Face3d(){
-// }
-
-// std::vector<float> Face3d::Predict(const uint8_t* buffer_120x120x3){
-//     MNN::Tensor* input_ts = _interpreter->getSessionInput(_session, "input");
-//     _preprocess->convert(buffer_120x120x3, 120, 120, 0, input_ts);
-//     _interpreter->runSession(_session); 
-//     MNN::Tensor* lnd_output_ts = _interpreter->getSessionOutput(_session, "output");
-//     MNN::Tensor lnd_host(lnd_output_ts, MNN::Tensor::CAFFE);
-//     lnd_output_ts->copyToHostTensor(&lnd_host);
-//     std::vector<float> output_landmarks(lnd_host.elementSize(), 0);
-//     std::copy(lnd_host.host<float>(), lnd_host.host<float>() + lnd_host.elementSize(), output_landmarks.data());
-//     return output_landmarks;
-// }
+}

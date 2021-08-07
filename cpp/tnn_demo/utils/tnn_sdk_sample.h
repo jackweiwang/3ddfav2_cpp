@@ -45,7 +45,7 @@ struct ObjectInfo {
     float y1 = 0;
     float x2 = 0;
     float y2 = 0;
-
+    std::vector<float> naive_key_points = {};
     //key_points <x y>
     std::vector<std::pair<float, float>> key_points = {};
     //key_points_3d <x y z>

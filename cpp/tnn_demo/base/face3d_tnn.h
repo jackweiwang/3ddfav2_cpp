@@ -11,8 +11,7 @@
 
 namespace TNN_NS {
 
-//typedef ObjectInfo BlazeFaceInfo;
-
+typedef ObjectInfo Face3dInfo;
 class Face3dInput : public TNNSDKInput {
 public:
     Face3dInput(std::shared_ptr<Mat> mat = nullptr) : TNNSDKInput(mat) {};
@@ -23,7 +22,8 @@ class Face3dOutput : public TNNSDKOutput {
 public:
     Face3dOutput(std::shared_ptr<Mat> mat = nullptr) : TNNSDKOutput(mat) {};
     virtual ~Face3dOutput() {};
-    std::vector<float > face_list;
+    std::vector<Face3dInfo> face_list;
+
 };
 
 class Face3dOption : public TNNSDKOption {
@@ -32,10 +32,8 @@ public:
     virtual ~Face3dOption() {}
     int input_width;
     int input_height;
+
     int num_thread = 1;
-    float min_score_threshold = 0.75;
-    float min_suppression_threshold = 0.3;
-    std::string anchor_path;
 };
 
 class Face3d : public TNNSDKSample {
@@ -51,28 +49,12 @@ public:
     
 private:
 
-    
-    std::vector<float> anchors;
-    
-    int num_anchors = 896;
-    int detect_dims = 16;
-    int num_keypoints = 6;
+    void GenerateLandmarks(std::vector<Face3dInfo> &detects, Mat &landmarks,
+                      int image_w, int image_h);
+
+    int num_keypoints = 68;
 };
 
 }
 
 #endif // TNN_EXAMPLES_BASE_BLAZEFACE_DETECTOR_H_
-// class Face3d
-// {
-//     public:
-//         Face3d(const std::string& model_path);
-//         ~Face3d();
-
-//         std::vector<float> Predict(const uint8_t* buffer_120x120x3);
-
-//     private:
-//         std::unique_ptr<MNN::CV::ImageProcess> _preprocess;
-//         std::unique_ptr<MNN::Interpreter> _interpreter;
-//         MNN::Session* _session;
-// };
-// #endif
