@@ -11,6 +11,9 @@ git clone https://github.com/lyyiangang/3ddfav2_cpp.git
 If so, you need download [TNN](https://github.com/Tencent/TNN) and Recompile.
 
 ```bash
+
+git clone https://github.com/Tencent/TNN.git
+
 git checkout feature_demo_stream
 
 cd TNN/examples/linux/x86
@@ -30,21 +33,17 @@ ln -s libTNN.so.0.1 libTNN.so
 ```
 ### 2. convert tnn
 
-This demo is tnn examples, so you can download model in
-   
-[blazeface.tnnproto](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/blazeface/blazeface.tnnproto)  
-[blazeface.tnnmodel](https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/blazeface/blazeface.tnnmodel)  
-[blazeface_anchors](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/blazeface/blazeface_anchors.txt)  
+you can "pytorch -> onnx ->  tnn" 
 
-[youtu_face_alignment_phase1.tnnproto](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/youtu_face_alignment/youtu_face_alignment_phase1.tnnproto)  
-[youtu_face_alignment_phase1.tnnmodel](https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/youtu_face_alignment/youtu_face_alignment_phase1.tnnmodel)  
-[youtu_face_alignment_phase2.tnnproto](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/youtu_face_alignment/youtu_face_alignment_phase2.tnnproto)  
-[youtu_face_alignment_phase2.tnnmodel](https://media.githubusercontent.com/media/darrenyao87/tnn-models/master/model/youtu_face_alignment/youtu_face_alignment_phase2.tnnmodel)  
+this is "onnx -> tnn"
+put face3d.onnx to TNN directory
+```bash
+cd TNN
 
-[youtu_mean_pts_phase1.txt](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/youtu_face_alignment/youtu_mean_pts_phase1.txt)  
-[youtu_mean_pts_phase2.txt](https://raw.githubusercontent.com/darrenyao87/tnn-models/master/model/youtu_face_alignment/youtu_mean_pts_phase2.txt)  
-
-Download model put models/facealigner
+python converter.py  onnx2tnn ../../face3d.onnx
+```
+get the tnnmodel and tnnproto
+put 3ddfav2_cpp/models
 
 ### 3. compile demo
 ```bash
@@ -55,16 +54,9 @@ cmake .. && make -j8
 ```
 run tnn_demo
 ```bash
-./tnn_demo
+./tnn_demo ../../../data/facealigner_test.jpg
 ```
-input 
 
-1.picture
-
-2.dir path  ../../../data/facealigner_test.jpg
-
-predictions.bmp will generated in the current directory
-
-![](results/facealigner_result.bmp)
+![](results/tnn_det_result2.png)
 
 
