@@ -1,4 +1,4 @@
-# TNN facealigner demo  
+# TNN Face3d demo  
 
 ## set up
 
