@@ -80,15 +80,24 @@ void Face3d::GenerateLandmarks(std::vector<Face3dInfo> &detects, TNN_NS::Mat &la
     info.image_width = image_w;
     info.image_height = image_h;
 
-    // key points
-    for(int i=0; i<num_keypoints*3; ++i) {
-        // int offset = j * 3 ;
-        // float xp = (landmark_data[offset + 0]  ) ;
-        // float yp = (landmark_data[offset + 1]  ) ;
-        // float zp = (landmark_data[offset + 2]  ) ;
-        //info.naive_key_points.push_back( std::make_tuple(xp, yp, zp) );
-        info.naive_key_points.push_back( landmark_data[i] );
+
+    //key points 3d
+    std::vector<triple<float, float, float>> key_points_3d;
+    for (int i=0; i<num_keypoints; ++i) {
+        info.key_points_3d.push_back(std::make_tuple(landmark_data[i * 3 + 0],
+                                                     landmark_data[i * 3 + 1],
+                                                     landmark_data[i * 3 + 2]));
     }
+
+    // key points
+    // for(int i=0; i<num_keypoints*3; ++i) {
+    //     // int offset = j * 3 ;
+    //     // float xp = (landmark_data[offset + 0]  ) ;
+    //     // float yp = (landmark_data[offset + 1]  ) ;
+    //     // float zp = (landmark_data[offset + 2]  ) ;
+    //     //info.naive_key_points.push_back( std::make_tuple(xp, yp, zp) );
+    //     info.key_points.push_back( landmark_data[i] );
+    // }
     detects.push_back(std::move(info));
     
     

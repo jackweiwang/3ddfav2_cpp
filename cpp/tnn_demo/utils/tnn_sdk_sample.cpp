@@ -143,6 +143,8 @@ ObjectInfo ObjectInfo::AddOffset(float offset_x, float offset_y) {
                                                                      std::get<2>(item)));
     }
     info.key_points_3d = key_points_3d;
+
+
     return info;
 }
 
@@ -231,6 +233,7 @@ ObjectInfo ObjectInfo::AdjustToViewSize(int view_height, int view_width, int gra
             info.x2 = info_aspect.x2;
             info.y1 = info_aspect.y1;
             info.y2 = info_aspect.y2;
+            info.naive_key_points = info_aspect.naive_key_points;
             info.key_points = info_aspect.key_points;
             info.key_points_3d = info_aspect.key_points_3d;
         } else {
