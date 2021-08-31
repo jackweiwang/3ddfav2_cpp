@@ -18,6 +18,9 @@
 #include "tnn_sdk_sample.h"
 #include "face3d_tnn.h"
 
+#include <stb_image.h>
+#include <stb_image_write.h>
+#include <stb_image_resize.h>
 namespace TNN_NS {
     
 Status FaceDetect3D::Init(std::vector<std::shared_ptr<TNNSDKSample>> sdks) {
@@ -53,6 +56,12 @@ Status FaceDetect3D::Predict(std::shared_ptr<TNNSDKInput> sdk_input,
     std::shared_ptr<TNNSDKOutput> sdk_output_mesh = nullptr;
 
     std::vector<BlazeFaceInfo> face_list;
+    std::shared_ptr<TNN_NS::Mat> phase1_pts = nullptr;
+
+            int crop_height = -1, crop_width = -1;
+        int crop_x = -1, crop_y = -1;
+        std::shared_ptr<TNN_NS::Mat> croped_mat;
+        std::shared_ptr<TNN_NS::Mat> resized_mat;
     // phase1: face detector
     {
         status = predictor_detect_cast->Predict(std::make_shared<BlazeFaceDetectorInput>(image_mat), sdk_output_face);
@@ -65,64 +74,76 @@ Status FaceDetect3D::Predict(std::shared_ptr<TNNSDKInput> sdk_input,
         std::cout << "000000000" << std::endl;
         if(face_list.size() <= 0) {
             //no faces, return
-            LOGD("Error no faces found!\n");
+            printf("Error no faces found!\n");
             return status;
         }
-        std::cout << "11111" << std::endl;
-    }
+        
 
-    int crop_height = -1, crop_width = -1;
-    int crop_x = -1, crop_y = -1;
-    // phase2: face mesh
-    {
-        // devan: only consider the 1st face
-        auto face = face_list[0];
-        auto face_orig = face.AdjustToViewSize(image_orig_height, image_orig_width, 2);
-        //1.5*crop
-        crop_height = 1.5 * (face_orig.y2 - face_orig.y1);
-        crop_width  = 1.5 * (face_orig.x2 - face_orig.x1);
-        crop_x = (std::max)(0.0, face_orig.x1 - 0.25 * crop_width);
-        crop_y = (std::max)(0.0, face_orig.y1 - 0.25 * crop_height);
-        crop_width  = (std::min)(crop_width,  image_orig_width-crop_x);
-        crop_height = (std::min)(crop_height, image_orig_height-crop_y);
 
-        DimsVector crop_dims = {1, 3, static_cast<int>(crop_height), static_cast<int>(crop_width)};
-        std::shared_ptr<TNN_NS::Mat> croped_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), TNN_NS::N8UC3, crop_dims);
-        status = predictor_mesh_cast->Crop(image_mat, croped_mat, crop_x, crop_y);
+        auto face_orig = face_list[0].AdjustToViewSize(image_orig_height, image_orig_width, 2);
+        std::cout << face_orig.x1 << face_orig.y1 << face_orig.x2 << face_orig.y2 << std::endl;
+        // set face region for phase1 model
+        if (!(predictor_mesh_cast &&
+                predictor_mesh_cast->SetFaceRegion(face_orig.x1, face_orig.y1, face_orig.x2, face_orig.y2))) {
+            //no invalid faces, return
+            printf("Error no valid faces found!\n");
+            return status;
+        }
+std::cout << "000000000" << std::endl;
+        // 2) predict
+        status = predictor_mesh_cast->Predict(std::make_shared<Face3dInput>(image_mat), sdk_output_mesh);
         RETURN_ON_NEQ(status, TNN_OK);
 
-        status = predictor_mesh_cast->Predict(std::make_shared<Face3dInput>(croped_mat), sdk_output_mesh);
-        RETURN_ON_NEQ(status, TNN_OK);
+std::cout << "4444444" << std::endl;
+        // //1.5*crop
+        // crop_height =  1.0 * (face_orig.y2 - face_orig.y1);
+        // crop_width  =  1.0 * (face_orig.x2 - face_orig.x1);
+        
+        // crop_x = (std::max)(0.0, face_orig.x1 + 0.05 * crop_width);
+        // crop_y = (std::max)(0.0, face_orig.y1 + 0.05 * crop_height);
+        // std::cout << "cropx"<< crop_x << crop_y <<  std::endl;
+
+        // crop_width  = (std::min)(crop_width,  image_orig_width - 2 * crop_x);
+        // crop_height = (std::min)(crop_height, image_orig_height- 2 * crop_y);
+
+
+        // std::cout << "crop"<< crop_height << crop_width <<  std::endl;
+        // std::cout << "image"<< image_mat->GetHeight() << image_mat->GetWidth() <<  std::endl;
+        // DimsVector crop_dims = {1, 3, static_cast<int>(crop_height), static_cast<int>(crop_width)};
+        // croped_mat = std::make_shared<TNN_NS::Mat>(image_mat->GetDeviceType(), TNN_NS::N8UC3, crop_dims);
+        // status = predictor_mesh_cast->Crop(image_mat, croped_mat, crop_x, crop_y);
+        // RETURN_ON_NEQ(status, TNN_OK);
+
+        // DimsVector resize_dims = {1, 3, 120, 120};
+        // resized_mat = std::make_shared<TNN_NS::Mat>(croped_mat->GetDeviceType(), TNN_NS::N8UC3, resize_dims);
+        // status = predictor_mesh_cast->Resize(croped_mat, resized_mat, TNNInterpLinear);
+        // RETURN_ON_NEQ(status, TNN_OK);
+
+
+        // status = predictor_mesh_cast->Predict(std::make_shared<Face3dInput>(resized_mat), sdk_output_mesh);
+        // RETURN_ON_NEQ(status, TNN_OK);
+
+
+        
     }
     //get output
+    
     {
-        if (sdk_output_mesh && dynamic_cast<Face3dOutput *>(sdk_output_mesh.get())) {
-            auto face_output = dynamic_cast<Face3dOutput *>(sdk_output_mesh.get());
-            auto face_mesh_list = face_output->face_list;
+        sdk_output = std::make_shared<Face3dOutput>();
+        auto phase1_output = dynamic_cast<Face3dOutput *>(sdk_output_mesh.get());
 
-            if (face_mesh_list.size() <= 0 ){
-                LOGD("Error no faces found!\n");
-                return status;
-            }
-            std::cout << "22222" << std::endl;
-            // only consider the first result
-            auto face_mesh = face_mesh_list[0];
-            auto face_mesh_cropped = face_mesh.AdjustToViewSize(crop_height, crop_width, 2);
-            face_mesh_cropped = face_mesh_cropped.AddOffset(crop_x, crop_y);
+        auto points        = phase1_output->face_list;
 
-            // set result
-            sdk_output = std::make_shared<Face3dOutput>();
-            auto output = dynamic_cast<Face3dOutput *>(sdk_output.get());
-            face_mesh_cropped.image_width = image_orig_width;
-            face_mesh_cropped.image_height = image_orig_height;
-            output->face_list.push_back(*reinterpret_cast<Face3dInfo*>(&face_mesh_cropped));
+        auto output = dynamic_cast<Face3dOutput *>(sdk_output.get());
+        output->face_list = points;
 
-            // for (int i=0; i < 68; i++)
-            // {
-            //     std::cout << output->face_list[0].key_points_3d[i] << std::endl;
-            // }
-        }
+        // for (int i=0; i < 68; i++)
+        // {
+        //     std::cout << std::get<0>(output->face_list[0].key_points_3d[i]) << std::endl;
+        // }
+        
     }
+
     return TNN_OK;
 }
 }

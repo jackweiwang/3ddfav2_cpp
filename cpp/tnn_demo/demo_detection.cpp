@@ -34,6 +34,7 @@ int plot_circle(uint8_t* src, int point[2], int width, int height) {
     return 0;
 }
 
+
 // convert to image coordinate system
 void post_process(std::vector<float>& pts){
     float min_z = std::numeric_limits<float>::max();
@@ -48,7 +49,6 @@ void post_process(std::vector<float>& pts){
         pts[ii * 3 + 2] -= min_z;
     }
 }
-
 int visualized(std::vector<BlazeFaceInfo> face_info, uint8_t*detrgbPtr, int target_width, int target_height, int originalWidth, int originalHeight){
 
     float scale_x  = originalWidth / (float)target_width;
@@ -80,11 +80,8 @@ int visualized(std::vector<BlazeFaceInfo> face_info, uint8_t*detrgbPtr, int targ
 Status initDetectPredictor(std::shared_ptr<BlazeFaceDetector>& predictor, int argc, char** argv) {
     char detect_path_buff[256];
     char *detect_model_path = detect_path_buff;
-    if (argc < 3) {
-        strncpy(detect_model_path, "../../../models/facealigner/", 256);
-    } else {
-        strncpy(detect_model_path, argv[2], 256);
-    }
+
+    strncpy(detect_model_path, "../../../models/facealigner/", 256);
 
     std::string detect_proto = std::string(detect_model_path) + "blazeface.tnnproto";
     std::string detect_model = std::string(detect_model_path) + "blazeface.tnnmodel";
@@ -121,11 +118,8 @@ Status initDetectPredictor(std::shared_ptr<BlazeFaceDetector>& predictor, int ar
 Status init3dPredictor(std::shared_ptr<Face3d>& predictor, int argc, char** argv) {
     char detect_path_buff[256];
     char *detect_model_path = detect_path_buff;
-    if (argc < 3) {
-        strncpy(detect_model_path, "../../../models/", 256);
-    } else {
-        strncpy(detect_model_path, argv[2], 256);
-    }
+
+    strncpy(detect_model_path, "../../../models/", 256);
 
     std::string detect_proto = std::string(detect_model_path) + "face3d.tnnproto";
     std::string detect_model = std::string(detect_model_path) + "face3d.tnnmodel";
@@ -133,26 +127,29 @@ Status init3dPredictor(std::shared_ptr<Face3d>& predictor, int argc, char** argv
 
     auto detect_proto_content = fdLoadFile(detect_proto);
     auto detect_model_content = fdLoadFile(detect_model);
-    auto detect_option = std::make_shared<Face3dOption>();
+    auto align_option = std::make_shared<Face3dOption>();
 
     const int targer_height = 120;
     const int targer_width = 120;
     DimsVector target_dims = {1, 3, targer_height, targer_width};
     {
-        detect_option->proto_content = detect_proto_content;
-        detect_option->model_content = detect_model_content;
-        detect_option->library_path = "";
+        align_option->proto_content = detect_proto_content;
+        align_option->model_content = detect_model_content;
+        align_option->library_path = "";
         
-        detect_option->compute_units = TNN_NS::TNNComputeUnitsCPU;
-        // if enable openvino/tensorrt, set option compute_units to openvino/tensorrt
-        //#ifdef _CUDA_
-        //    detect_option->compute_units = TNN_NS::TNNComputeUnitsGPU;
-        //#endif
+        align_option->compute_units = TNN_NS::TNNComputeUnitsCPU;
+
+
+        align_option->input_width = targer_width;
+        align_option->input_height = targer_height;
+        align_option->face_threshold = 0.5;
+        align_option->min_face_size = 20;;
+        align_option->net_scale = 1.2;
 
     }
 
     predictor = std::make_shared<Face3d>();
-    auto status = predictor->Init(detect_option);
+    auto status = predictor->Init(align_option);
     return status;
 }
 
@@ -185,35 +182,19 @@ int main(int argc, char **argv){
     std::shared_ptr<TNNSDKOutput> output = nullptr;
 
     DimsVector target_dims = {1, 3, 120, 120};
-    DimsVector retarget_dims = {1, 3, 128, 128};
 
     DimsVector nchw = {1, originChannel, originalHeight, originalWidth};
     auto image_mat = std::make_shared<Mat>(DEVICE_NAIVE, N8UC3, nchw, rgbPtr);
-    auto resize_mat = std::make_shared<Mat>(DEVICE_NAIVE, N8UC3, retarget_dims);
-
-    // auto det_image_mat = std::make_shared<Mat>(DEVICE_NAIVE, N8UC3, nchw, detrgbPtr);
-    // auto det_resize_mat = std::make_shared<Mat>(DEVICE_NAIVE, N8UC3, retarget_dims);
-    // tnn::Mat *test = image_mat.get();
-    // tnn::Mat *test1 = resize_mat.get();
-    // std::cout << "height"<< test->GetHeight() << test->GetWidth() <<  std::endl;
-    // std::cout << "height1"<< test1->GetHeight() << test1->GetWidth() <<  std::endl;
-    //TNNInterpNearest TNNInterpLinear
-
-    // status = predictor->Resize(image_mat, resize_mat, TNNInterpLinear);
-    // RETURN_ON_NEQ(status, TNN_OK);
     
     status = predictor->Predict(std::make_shared<TNNSDKInput>(image_mat), output);
     RETURN_ON_NEQ(status, TNN_OK);
 
-
-    //std::vector< float> lnds(68*3);
-    //predictor->ProcessSDKOutput(output);
-    std::vector<FaceDetect3dInfo> face;
-    if (output && dynamic_cast<FaceDetect3dOutput *>(output.get())) {
-        auto face_output = dynamic_cast<FaceDetect3dOutput *>(output.get());
+    std::vector<Face3dInfo> face;
+    if (output && dynamic_cast<Face3dOutput *>(output.get())) {
+        auto face_output = dynamic_cast<Face3dOutput *>(output.get());
         face = face_output->face_list;
     }
-    std::cout << "1111111111" << std::endl;
+    std::cout << face.size() << std::endl;
     if(face.size() <= 0) {
         //no faces, return
         LOGD("Error no faces found!\n");
@@ -221,20 +202,26 @@ int main(int argc, char **argv){
     }
 
     int pointNum = 68*3;
+    auto triple_point = face[0].key_points_3d;
+    std::vector< float> lnds(68*3);
 
-    auto lnds = face[0].key_points_3d;
-    //std::cout << face[0].key_points_3d[0] << std::endl;
     for(int ii = 0; ii < 68; ++ii){
-        std::cout << std::get<0>(lnds[ii])<< std::endl;
-    }
 
-    // post_process(lnds);
+        lnds[ii*3 + 0] = std::get<0>(triple_point[ii]);
+        lnds[ii*3 + 1] = std::get<1>(triple_point[ii]);
+        lnds[ii*3 + 2] = std::get<2>(triple_point[ii]);
 
-    // for(int ii = 0; ii < 68; ++ii){
-    //     int pt[2] = {lnds[ii * 3], lnds[ii * 3 + 1]};
-    //     plot_circle(rgbPtr, pt, originalWidth, originalHeight);
-    //     std::cout << lnds[ii] << std::endl;
-    // }   
+    }   
+
+    post_process(lnds);
+
+    for(int ii = 0; ii < 68; ++ii){
+
+        int pt[2] = {lnds[ii*3 + 0], lnds[ii*3 + 1]};
+        plot_circle(rgbPtr, pt, originalWidth, originalHeight);
+        //std::cout << std::get<0>(lnds[ii]) << std::endl;
+
+    }   
         
     //
     //
@@ -249,10 +236,10 @@ int main(int argc, char **argv){
     //std::vector< float> lnds(68*3);
 
 
-    // std::string out_name = "tnn_det_result.png";
-    // stbi_write_png(out_name.c_str(), originalWidth, originalHeight, 3, inputImage, 3 * originalWidth);
-    // stbi_image_free(inputImage);
-    // std::cout<<"output detect result to "<< out_name<<std::endl;
+    std::string out_name = "tnn_det_result.png";
+    stbi_write_png(out_name.c_str(), originalWidth, originalHeight, 3, inputImage, 3 * originalWidth);
+    stbi_image_free(inputImage);
+    std::cout<<"output detect result to "<< out_name<<std::endl;
 
     return 0; 
 }
