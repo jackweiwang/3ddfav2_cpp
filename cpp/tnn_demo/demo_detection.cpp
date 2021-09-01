@@ -192,7 +192,7 @@ int main(int argc, char **argv){
     std::vector<triple<float,float,float>> face_point(68);
     if (output && dynamic_cast<Face3dOutput *>(output.get())) {
         auto face_output = dynamic_cast<Face3dOutput *>(output.get())->face;
-        face_point = face_output.key_points_3d;
+        face_point = face_output[0].key_points_3d;
     }
 
     int pointNum = 68*3;
