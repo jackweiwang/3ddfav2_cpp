@@ -64,37 +64,46 @@ Status FaceDetect3D::Predict(std::shared_ptr<TNNSDKInput> sdk_input,
         std::shared_ptr<TNN_NS::Mat> resized_mat;
     // phase1: face detector
     {
-        status = predictor_detect_cast->Predict(std::make_shared<BlazeFaceDetectorInput>(image_mat), sdk_output_face);
-        RETURN_ON_NEQ(status, TNN_OK);
+                // 1) prepare input for phase1 model
+        if(!has_prev_face_) {
+            status = predictor_detect_cast->Predict(std::make_shared<BlazeFaceDetectorInput>(image_mat), sdk_output_face);
+            RETURN_ON_NEQ(status, TNN_OK);
 
-        if (sdk_output_face && dynamic_cast<BlazeFaceDetectorOutput *>(sdk_output_face.get())) {
-            auto face_output = dynamic_cast<BlazeFaceDetectorOutput *>(sdk_output_face.get());
-            face_list = face_output->face_list;
-        }
-        std::cout << "000000000" << std::endl;
-        if(face_list.size() <= 0) {
-            //no faces, return
-            printf("Error no faces found!\n");
-            return status;
-        }
-        
+            if (sdk_output_face && dynamic_cast<BlazeFaceDetectorOutput *>(sdk_output_face.get())) {
+                auto face_output = dynamic_cast<BlazeFaceDetectorOutput *>(sdk_output_face.get());
+                face_list = face_output->face_list;
+            }
+            std::cout << "000000000" << std::endl;
+            if(face_list.size() <= 0) {
+                //no faces, return
+                printf("Error no faces found!\n");
+                return status;
+            }
+            
 
 
-        auto face_orig = face_list[0].AdjustToViewSize(image_orig_height, image_orig_width, 2);
-        std::cout << face_orig.x1 << face_orig.y1 << face_orig.x2 << face_orig.y2 << std::endl;
-        // set face region for phase1 model
-        if (!(predictor_mesh_cast &&
-                predictor_mesh_cast->SetFaceRegion(face_orig.x1, face_orig.y1, face_orig.x2, face_orig.y2))) {
-            //no invalid faces, return
-            printf("Error no valid faces found!\n");
-            return status;
-        }
-std::cout << "000000000" << std::endl;
+            auto face_orig = face_list[0].AdjustToViewSize(image_orig_height, image_orig_width, 2);
+            std::cout << face_orig.x1 << face_orig.y1 << face_orig.x2 << face_orig.y2 << std::endl;
+            // set face region for phase1 model
+            
+            if (!(predictor_mesh_cast &&
+                    predictor_mesh_cast->SetFaceRegion(face_orig.x1, face_orig.y1, face_orig.x2, face_orig.y2))) {
+                //no invalid faces, return
+                printf("Error no valid faces found!\n");
+                return status;
+            }
+    }
+std::cout << "0" << std::endl;
         // 2) predict
         status = predictor_mesh_cast->Predict(std::make_shared<Face3dInput>(image_mat), sdk_output_mesh);
         RETURN_ON_NEQ(status, TNN_OK);
-
-std::cout << "4444444" << std::endl;
+std::cout << "9999999999" << std::endl;
+        // update prev_face
+        has_prev_face_ = predictor_mesh_cast->GetPrevFace();
+        if(!has_prev_face_) {
+            LOGD("Next frame will use face detector!\n");
+        }
+        phase1_pts = predictor_mesh_cast->GetPrePts();
         // //1.5*crop
         // crop_height =  1.0 * (face_orig.y2 - face_orig.y1);
         // crop_width  =  1.0 * (face_orig.x2 - face_orig.x1);
@@ -129,19 +138,16 @@ std::cout << "4444444" << std::endl;
     //get output
     
     {
+        std::cout << "777777" << std::endl;
         sdk_output = std::make_shared<Face3dOutput>();
         auto phase1_output = dynamic_cast<Face3dOutput *>(sdk_output_mesh.get());
 
-        auto points        = phase1_output->face_list;
+        auto& points_phase = phase1_output->face.key_points_3d;
 
         auto output = dynamic_cast<Face3dOutput *>(sdk_output.get());
-        output->face_list = points;
-
-        // for (int i=0; i < 68; i++)
-        // {
-        //     std::cout << std::get<0>(output->face_list[0].key_points_3d[i]) << std::endl;
-        // }
-        
+        output->face.key_points_3d = points_phase;
+        output->face.image_height = image_orig_height;
+        output->face.image_width  = image_orig_width;
     }
 
     return TNN_OK;

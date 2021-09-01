@@ -189,27 +189,21 @@ int main(int argc, char **argv){
     status = predictor->Predict(std::make_shared<TNNSDKInput>(image_mat), output);
     RETURN_ON_NEQ(status, TNN_OK);
 
-    std::vector<Face3dInfo> face;
+    std::vector<triple<float,float,float>> face_point(68);
     if (output && dynamic_cast<Face3dOutput *>(output.get())) {
-        auto face_output = dynamic_cast<Face3dOutput *>(output.get());
-        face = face_output->face_list;
-    }
-    std::cout << face.size() << std::endl;
-    if(face.size() <= 0) {
-        //no faces, return
-        LOGD("Error no faces found!\n");
-        return status;
+        auto face_output = dynamic_cast<Face3dOutput *>(output.get())->face;
+        face_point = face_output.key_points_3d;
     }
 
     int pointNum = 68*3;
-    auto triple_point = face[0].key_points_3d;
+
     std::vector< float> lnds(68*3);
 
     for(int ii = 0; ii < 68; ++ii){
 
-        lnds[ii*3 + 0] = std::get<0>(triple_point[ii]);
-        lnds[ii*3 + 1] = std::get<1>(triple_point[ii]);
-        lnds[ii*3 + 2] = std::get<2>(triple_point[ii]);
+        lnds[ii*3 + 0] = std::get<0>(face_point[ii]);
+        lnds[ii*3 + 1] = std::get<1>(face_point[ii]);
+        lnds[ii*3 + 2] = std::get<2>(face_point[ii]);
 
     }   
 
@@ -223,17 +217,6 @@ int main(int argc, char **argv){
 
     }   
         
-    //
-    //
-    //
-    //
-    // status = predictor->Resize(image_mat, resize_mat, TNNInterpLinear);
-    // RETURN_ON_NEQ(status, TNN_OK);
-    
-    // status = predictor->Predict(std::make_shared<Face3dInput>(resize_mat), output);
-    // RETURN_ON_NEQ(status, TNN_OK);
-
-    //std::vector< float> lnds(68*3);
 
 
     std::string out_name = "tnn_det_result.png";

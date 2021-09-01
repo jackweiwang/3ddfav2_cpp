@@ -59,53 +59,61 @@ Status Face3d::ProcessSDKOutput(std::shared_ptr<TNNSDKOutput> output_) {
     Status(TNNERR_PARAM_ERR, "TNNSDKOutput is invalid"));
     
     
-    auto point = output->GetMat("output");
-    // TNN_NS::Mat landmarks = *(point.get());
-    // float *landmark_data = static_cast<float*>(landmarks.GetData());
-    // std::cout << landmark_data[0] << std::endl;
+    std::shared_ptr<Mat> pts = nullptr;
+    std::shared_ptr<Mat> vis = nullptr;
 
-    RETURN_VALUE_ON_NEQ(!point, false,
-                           Status(TNNERR_PARAM_ERR, "point mat is nil"));
- 
-    std::vector<Face3dInfo> bbox_collection;
-    GenerateLandmarks(bbox_collection, *(point.get()), option->input_width, option->input_height);
-    std::cout << bbox_collection.size() << std::endl;
-    output->face_list = bbox_collection;
+    pts = output->GetMat("output");
+
+    auto InverseM = MatrixInverse2x3(M, 2, 3);
+    LandMarkWarpAffine(pts, InverseM);
+
+    pre_pts = pts;
     
+    // prepare output
+    Face3dInfo face;
+std::cout << "555555555" << std::endl;
+    constexpr int pts_dim = 3;
+    auto pts_cnt = pts->GetDims()[1] / pts_dim;
+    std::cout << pts_cnt << std::endl;
+    auto pts_data = static_cast<float*>(pts->GetData());
+    face.key_points_3d.resize(pts_cnt);
+
+    //std::vector<triple<float, float, float>> key_points_3d;
+    for (int i=0; i<num_keypoints; ++i) {
+    //for (int i=0; i<pts_cnt; ++i) {
+        face.key_points_3d[i] = std::make_tuple(pts_data[i * pts_dim + 0],
+                                                     pts_data[i * pts_dim + 1],
+                                                     pts_data[i * pts_dim + 2]);
+                                                     std::cout << pts_data[i*3+0] << std::endl;
+    }
+    output->face = std::move(face);
+    std::cout << "666" << std::endl;
     return status;
 }
-void Face3d::GenerateLandmarks(std::vector<Face3dInfo> &detects, TNN_NS::Mat &landmarks, int image_w, int image_h ) {
+// void Face3d::GenerateLandmarks(std::vector<Face3dInfo> &detects, TNN_NS::Mat &landmarks, int image_w, int image_h ) {
 
-    float *landmark_data = static_cast<float*>(landmarks.GetData());
+//     float *landmark_data = static_cast<float*>(landmarks.GetData());
 
 
-    Face3dInfo info;
-    info.image_width = image_w;
-    info.image_height = image_h;
-    std::cout << image_w <<  image_h<< std::endl;
+//     Face3dInfo info;
+//     info.image_width = image_w;
+//     info.image_height = image_h;
+//     std::cout << image_w <<  image_h<< std::endl;
 
-    //key points 3d
-    std::vector<triple<float, float, float>> key_points_3d;
-    for (int i=0; i<num_keypoints; ++i) {
-        info.key_points_3d.push_back(std::make_tuple(landmark_data[i * 3 + 0],
-                                                     landmark_data[i * 3 + 1],
-                                                     landmark_data[i * 3 + 2]));
-        //std::cout << landmark_data[i*3+0] << std::endl;
-    }
+//     //key points 3d
+//     std::vector<triple<float, float, float>> key_points_3d;
+//     for (int i=0; i<num_keypoints; ++i) {
+//         info.key_points_3d.push_back(std::make_tuple(landmark_data[i * 3 + 0],
+//                                                      landmark_data[i * 3 + 1],
+//                                                      landmark_data[i * 3 + 2]));
+//         //std::cout << landmark_data[i*3+0] << std::endl;
+//     }
 
-    // key points
-    // for(int i=0; i<num_keypoints*3; ++i) {
-    //     // int offset = j * 3 ;
-    //     // float xp = (landmark_data[offset + 0]  ) ;
-    //     // float yp = (landmark_data[offset + 1]  ) ;
-    //     // float zp = (landmark_data[offset + 2]  ) ;
-    //     //info.naive_key_points.push_back( std::make_tuple(xp, yp, zp) );
-    //     info.key_points.push_back( landmark_data[i] );
-    // }
-    detects.push_back(std::move(info));
+
+//     detects.push_back(std::move(info));
     
     
-}
+// }
 
 Status Face3d::Predict(std::shared_ptr<TNNSDKInput> input, std::shared_ptr<TNNSDKOutput> &output) {
     Status status = TNN_OK;
@@ -132,7 +140,8 @@ Status Face3d::Predict(std::shared_ptr<TNNSDKInput> input, std::shared_ptr<TNNSD
         // use face region from face detector
         input1 = WarpByRect(input_mat, x1, y1, x2, y2, image_h, net_scale, M);
 std::cout << "input1"<< input1->GetHeight() << input1->GetWidth() <<  std::endl;
-        std::cout << "22222222" << std::endl;
+
+
 
         // Normalize
         auto input_convert_param = GetConvertParamForInput();
@@ -152,7 +161,7 @@ std::cout << "input1"<< input1->GetHeight() << input1->GetWidth() <<  std::endl;
             RETURN_ON_NEQ(status, TNN_NS::TNN_OK);
             output->AddMat(output_mat, name);
         }
-        
+
 #if TNN_SDK_ENABLE_BENCHMARK
         sample_time.Stop();
         double elapsed = sample_time.GetTime();

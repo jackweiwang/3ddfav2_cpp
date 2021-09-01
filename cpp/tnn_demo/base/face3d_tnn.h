@@ -9,6 +9,10 @@
 #include <memory>
 #include <vector>
 #include "sample_timer.h"
+#include "stdlib.h"
+#include <algorithm>
+#include <cstring>
+#include <memory>
 namespace TNN_NS {
 
 typedef ObjectInfo Face3dInfo;
@@ -22,7 +26,7 @@ class Face3dOutput : public TNNSDKOutput {
 public:
     Face3dOutput(std::shared_ptr<Mat> mat = nullptr) : TNNSDKOutput(mat) {};
     virtual ~Face3dOutput() {};
-    std::vector<Face3dInfo> face_list;
+    Face3dInfo face;
 
 };
 
@@ -65,11 +69,25 @@ public:
         return true;
     }
 
+    std::shared_ptr<TNN_NS::Mat> GetPrePts() {
+        return this->pre_pts;
+    }
+
     bool GetPrevFace() {
         return this->prev_face;
     }
     void SetPrevFace(bool b) {
         this->prev_face = b;
+    }
+
+    void SetPrePts(std::shared_ptr<Mat> p, bool deep_copy = false) {
+        if(deep_copy) {
+            this->pre_pts = std::make_shared<TNN_NS::Mat>(p->GetDeviceType(), p->GetMatType(), p->GetDims());
+            auto count = TNN_NS::DimsVectorUtils::Count(p->GetDims());
+            memcpy(this->pre_pts->GetData(), p->GetData(), sizeof(float)*count);
+        } else {
+            this->pre_pts = p;
+        }
     }
     
 private:

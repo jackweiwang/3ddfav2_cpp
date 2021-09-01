@@ -6,5 +6,5 @@ CXX_DEFINES = -DGFLAGS_IS_A_DLL=0 -DNO_THREADS
 
 CXX_INCLUDES = -I/home/ww/google/3ddfav2_cpp/cpp/tnn_demo/../third_party/TNN/include -I/home/ww/google/3ddfav2_cpp/cpp/tnn_demo/../third_party/stb -I/home/ww/google/3ddfav2_cpp/cpp/tnn_demo/base -I/home/ww/google/3ddfav2_cpp/cpp/tnn_demo/utils -I/home/ww/google/3ddfav2_cpp/cpp/third_party/gflags/include -I/home/ww/google/3ddfav2_cpp/cpp/third_party/gflags/src -I/home/ww/google/3ddfav2_cpp/cpp/third_party/gflags/include/gflags
 
-CXX_FLAGS = -Wall -O3 -g3 -fPIC   -fPIC -std=gnu++17
+CXX_FLAGS = -Wall -g -fPIC   -fPIC -std=gnu++17
 

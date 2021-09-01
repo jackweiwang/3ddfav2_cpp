@@ -60,6 +60,8 @@ public:
     virtual Status Init(std::vector<std::shared_ptr<TNNSDKSample>> sdks);
 
 protected:
+    bool has_prev_face_ = false;
+
     std::shared_ptr<TNNSDKSample> predictor_detect_ = nullptr;
     std::shared_ptr<TNNSDKSample> predictor_3d_ = nullptr;
 };

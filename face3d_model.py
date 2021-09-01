@@ -8,10 +8,10 @@ import torch.nn as nn
 import yaml
 import numpy as np
 from TDDFA import TDDFA
-
+from FaceBoxes import FaceBoxes
 cfg_file = 'configs/mb1_120x120.yml'
 cfg = yaml.load(open(cfg_file), Loader=yaml.SafeLoader)
-test_img = 'data/emma.jpg'
+test_img = 'data/facealigner_test.jpg'
 
 gt_box = [1699.8129, 278.4989, 2057.769, 762.43463, 0.9999492]
 
@@ -42,11 +42,12 @@ def _parse_param(param):
 def original_result(display = False):
     import os
     os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
-    os.environ['OMP_NUM_THREADS'] = '4'
-
+    os.environ['OMP_NUM_THREADS'] = '4'  
+    face_boxes = FaceBoxes()
     tddfa = TDDFA(gpu_mode='gpu', **cfg)
     img = cv2.imread(test_img)
-    param_lst, roi_box_lst = tddfa(img, [gt_box])
+    boxes = face_boxes(img)
+    param_lst, roi_box_lst = tddfa(img, boxes)
     ver_lst = tddfa.recon_vers(param_lst, roi_box_lst, dense_flag= False)
     if display:
         draw_landmarks(img, ver_lst, show_flag= True, dense_flag=False, wfp=None)
@@ -90,7 +91,7 @@ class ComposeModel(nn.Module):
         return np.array(pts3d, dtype=np.float32)
 
 def test_compose_model():
-    face = cv2.imread('data/crop_face.png')
+    face = cv2.imread('data/facealigner_test.jpg')
     model = ComposeModel()
     with torch.no_grad():
         input_tensor = model.preprocess(face)
@@ -119,6 +120,6 @@ def ConvertTOOnnx():
     
 
 if __name__ == '__main__':
-    original_result(True)
+    #original_result(False)
     test_compose_model()
     ConvertTOOnnx()
